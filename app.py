@@ -12,8 +12,13 @@ def detect_country(phone):
 
 def show_offer(country):
     if country == "Saudi Arabia":
+    if language == "en":
+        return "As part of Vision 2030, you get a 3% special discount!"
+    elif language == "ar":
         return "ضمن رؤية 2030، ستحصل على خصم خاص بنسبة 3٪!"
-    return ""
+    else:
+        return ""  # برای سوئدی یا سایر زبان‌ها، پیام خالی بده
+
 
 @app.route("/", methods=["GET", "POST"])
 def home():
