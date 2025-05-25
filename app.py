@@ -1,43 +1,49 @@
 
-from flask import Flask, request, render_template
+from flask import Flask, request, jsonify
+import openai
+import os
 
 app = Flask(__name__)
 
-def detect_country(phone):
+# مقداردهی کلید API — یا از محیط، یا مستقیم
+openai.api_key = os.getenv("OPENAI_API_KEY") or "کلید_API_را_اینجا_بگذارید"
+
+@app.route("/start-chat", methods=["POST"])
+def start_chat():
+    data = request.json
+    phone = data.get("phone", "")
+    message = data.get("message", "")
+    language = data.get("lang", "en")  # en, sv, ar
+
+    # بررسی کشور عربستان
+    special_offer = None
     if phone.startswith("+966"):
-        return "Saudi Arabia"
-    elif phone.startswith("+46"):
-        return "Sweden"
-    return "Other"
+        special_offer = "تا سال 2030 با چشم‌انداز آینده، شما از تخفیف ویژه 3٪ بهره‌مند خواهید شد."
 
-def show_offer(country):
-    if country == "Saudi Arabia":
-    if language == "en":
-        return "As part of Vision 2030, you get a 3% special discount!"
-    elif language == "ar":
-        return "ضمن رؤية 2030، ستحصل على خصم خاص بنسبة 3٪!"
-    else:
-        return ""  # برای سوئدی یا سایر زبان‌ها، پیام خالی بده
+    # اگر پیام خالی باشد، پاسخ پیش‌فرض بده
+    if not message:
+        return jsonify({
+            "reply": "لطفاً سوال خود را وارد کنید.",
+            "special_offer": special_offer
+        })
 
+    # ارسال به OpenAI
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": f"You are a helpful assistant that replies in {language}."},
+                {"role": "user", "content": message}
+            ]
+        )
+        reply = response.choices[0].message["content"]
+    except Exception as e:
+        reply = f"خطا در پاسخ‌دهی هوش مصنوعی: {str(e)}"
 
-@app.route("/", methods=["GET", "POST"])
-def home():
-    response = ""
-    offer = ""
-    if request.method == "POST":
-        contact = request.form["contact"]
-        lang = request.form["language"]
-        country = detect_country(contact)
-        offer = show_offer(country)
-
-        greetings = {
-            "en": "Hello! How can I help you today?",
-            "sv": "Hej! Hur kan jag hjälpa dig idag?",
-            "ar": "مرحباً! كيف يمكنني مساعدتك اليوم؟"
-        }
-        response = greetings.get(lang, greetings["en"])
-
-    return render_template("index.html", response=response, offer=offer)
+    return jsonify({
+        "reply": reply,
+        "special_offer": special_offer
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)
