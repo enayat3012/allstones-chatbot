@@ -5,40 +5,40 @@ import os
 
 app = Flask(__name__)
 
-# مقداردهی کلید API — یا از محیط، یا مستقیم
-openai.api_key = os.getenv("OPENAI_API_KEY") or "کلید_API_را_اینجا_بگذارید"
+# دریافت کلید API از محیط یا مقدار پیش‌فرض
+openai.api_key = os.getenv("OPENAI_API_KEY") or "کلید_API_خود_را_اینجا_قرار_دهید"
 
 @app.route("/start-chat", methods=["POST"])
 def start_chat():
     data = request.json
     phone = data.get("phone", "")
     message = data.get("message", "")
-    language = data.get("lang", "en")  # en, sv, ar
+    language = data.get("lang", "en")  # پیش‌فرض انگلیسی: en, sv, ar
 
-    # بررسی کشور عربستان
+    # بررسی شماره تلفن مربوط به عربستان
     special_offer = None
     if phone.startswith("+966"):
         special_offer = "تا سال 2030 با چشم‌انداز آینده، شما از تخفیف ویژه 3٪ بهره‌مند خواهید شد."
 
-    # اگر پیام خالی باشد، پاسخ پیش‌فرض بده
+    # بررسی خالی بودن پیام
     if not message:
         return jsonify({
             "reply": "لطفاً سوال خود را وارد کنید.",
             "special_offer": special_offer
         })
 
-    # ارسال به OpenAI
+    # ارسال پیام به GPT-4
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": f"You are a helpful assistant that replies in {language}."},
+                {"role": "system", "content": f"You are a helpful assistant replying in {language}."},
                 {"role": "user", "content": message}
             ]
         )
         reply = response.choices[0].message["content"]
     except Exception as e:
-        reply = f"خطا در پاسخ‌دهی هوش مصنوعی: {str(e)}"
+        reply = f"خطا در ارتباط با OpenAI: {str(e)}"
 
     return jsonify({
         "reply": reply,
